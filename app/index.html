@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusRoute — Dijkstra Navigator</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<script src="./lucide.min.js"></script>
+<style>html,body{margin:0;background:#fdf8ef;padding:18px;}</style>
+</head>
+<body>
+<div id="dijkstra-app">
+<style>
+#dijkstra-app{
+  --dp-bg:#fdf8ef; --dp-card:#ffffff; --dp-card2:#f6f2e9; --dp-card3:#fbf8f1;
+  --dp-border:#eae4d5; --dp-border2:#dbd4c2;
+  --dp-text:#20242e; --dp-muted:#6d7280; --dp-dim:#9aa0ab;
+  --dp-green:#22c55e; --dp-green-bright:#4ade80; --dp-green-deep:#16a34a;
+  --dp-orange:#fb923c; --dp-orange-deep:#ea580c;
+  --dp-red:#ef4444; --dp-red-soft:#f87171;
+  --dp-blue:#3b82f6; --dp-purple:#8b5cf6; --dp-pink:#f472b6; --dp-yellow:#fbbf24;
+  --dp-white:#ffffff;
+  position:relative; overflow:hidden;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color:var(--dp-text); background:var(--dp-bg);
+  border-radius:26px; padding:16px;
+  background-image:
+    radial-gradient(circle 5px at 8% 12%, rgba(34,197,94,.16) 98%, transparent),
+    radial-gradient(circle 4px at 22% 42%, rgba(59,130,246,.15) 98%, transparent),
+    radial-gradient(circle 6px at 5% 74%, rgba(139,92,246,.14) 98%, transparent),
+    radial-gradient(circle 4px at 88% 18%, rgba(244,114,182,.16) 98%, transparent),
+    radial-gradient(circle 5px at 95% 62%, rgba(251,146,60,.16) 98%, transparent),
+    radial-gradient(circle 4px at 70% 92%, rgba(251,191,36,.2) 98%, transparent);
+}
+#dijkstra-app .dp-shell{position:relative; z-index:1; display:flex; flex-direction:column; gap:14px;}
+
+/* header + app tabs */
+#dijkstra-app .nb-hero{display:flex; align-items:center; gap:14px; background:var(--dp-card); border:1px solid var(--dp-border); border-radius:22px; padding:14px 18px; position:relative; overflow:hidden; flex-wrap:wrap;}
+#dijkstra-app .nb-hero::before{content:''; position:absolute; left:0; top:0; bottom:0; width:7px; background:linear-gradient(180deg,var(--dp-green),var(--dp-blue),var(--dp-purple),var(--dp-orange),var(--dp-pink));}
+#dijkstra-app .nb-logo{width:46px; height:46px; border-radius:15px; background:linear-gradient(135deg,var(--dp-green),var(--dp-blue) 55%,var(--dp-purple)); display:flex; align-items:center; justify-content:center; color:#fff; flex:none;}
+#dijkstra-app .nb-logo svg{width:22px; height:22px;}
+#dijkstra-app .nb-title h1{margin:0; font-size:21px; font-weight:500; letter-spacing:.2px;}
+#dijkstra-app .nb-title p{margin:2px 0 0; font-size:12px; color:var(--dp-muted);}
+#dijkstra-app .dp-tabs{margin-left:auto; display:flex; gap:6px; flex-wrap:wrap;}
+#dijkstra-app .dp-tab{display:inline-flex; align-items:center; gap:7px; border:1.5px solid var(--dp-border2); background:var(--dp-card); color:var(--dp-muted); font:inherit; font-size:13.5px; font-weight:500; padding:9px 18px; border-radius:999px; cursor:pointer; transition:all .15s;}
+#dijkstra-app .dp-tab svg{width:15px; height:15px;}
+#dijkstra-app .dp-tab:hover{color:var(--dp-text);}
+#dijkstra-app .dp-tab.active{background:var(--acc,var(--dp-text)); border-color:var(--acc,var(--dp-text)); color:#fff;}
+
+/* cards */
+#dijkstra-app .nb-card{position:relative; background:var(--dp-card); border:1px solid var(--dp-border); border-radius:18px; padding:16px 18px; overflow:hidden;}
+#dijkstra-app .nb-stripe::before{content:''; position:absolute; left:0; top:0; right:0; height:5px; background:var(--stripe,var(--dp-green));}
+#dijkstra-app .nb-card-head{display:flex; align-items:center; gap:9px; margin-bottom:12px; flex-wrap:wrap;}
+#dijkstra-app .nb-card-head h3{margin:0; font-size:14.5px; font-weight:500; letter-spacing:.2px;}
+#dijkstra-app .nb-sq{width:11px; height:11px; border-radius:4px; flex:none;}
+#dijkstra-app .nb-grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;}
+@media (max-width:980px){#dijkstra-app .nb-grid2{grid-template-columns:1fr;}}
+
+/* legend */
+#dijkstra-app .dp-legend{display:flex; gap:6px; flex-wrap:wrap; margin-left:auto;}
+#dijkstra-app .dp-lg{display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--dp-muted); background:var(--dp-card3); border:1px solid var(--dp-border); border-radius:999px; padding:3px 9px;}
+#dijkstra-app .dp-lg i{width:8px; height:8px; border-radius:50%; display:inline-block;}
+
+/* map */
+#dijkstra-app .nb-map-flex{display:flex; gap:12px; align-items:stretch;}
+@media (max-width:1080px){#dijkstra-app .nb-map-flex{flex-direction:column;}}
+#dijkstra-app .dp-map-wrap{flex:1; min-width:0; background:var(--dp-card3); border:1px solid var(--dp-border); border-radius:16px; padding:8px;}
+#dijkstra-app svg#map{display:block; width:100%; height:auto; font-family:inherit; touch-action:none;}
+#dijkstra-app svg#map text{user-select:none; -webkit-user-select:none;}
+#dijkstra-app .road-casing{stroke:#2c2c33; stroke-width:14; stroke-linecap:round;}
+#dijkstra-app .road-asphalt{stroke:#3c3c45; stroke-width:10; stroke-linecap:round;}
+#dijkstra-app .road-dashes{stroke:#f5f2ea; stroke-width:1.8; stroke-dasharray:9 11; opacity:.85;}
+#dijkstra-app g.road.is-blocked .road-casing{stroke:rgba(239,68,68,.35);}
+#dijkstra-app g.road.is-blocked .road-asphalt{stroke:#8f3a40;}
+#dijkstra-app g.road.is-blocked .road-dashes{stroke:var(--dp-red-soft); opacity:.95;}
+#dijkstra-app .road-tent{stroke:var(--dp-green-deep); stroke-width:8; stroke-linecap:round; stroke-dasharray:2 10; opacity:.4; fill:none;}
+#dijkstra-app .road-routebase{stroke:var(--dp-green-bright); stroke-width:12; stroke-linecap:round; opacity:.55; fill:none;}
+#dijkstra-app .road-flow{stroke:#eafff2; stroke-width:3; stroke-linecap:round; stroke-dasharray:13 19; fill:none; animation:dpflow 1.1s linear infinite;}
+@keyframes dpflow{to{stroke-dashoffset:-32;}}
+@media (prefers-reduced-motion:reduce){#dijkstra-app .road-flow{animation:none;}}
+#dijkstra-app .road-hit{stroke:rgba(0,0,0,0); stroke-width:32; fill:none; cursor:pointer;}
+#dijkstra-app .road-lbl{cursor:pointer;}
+#dijkstra-app .road-lbl rect{fill:#ffffff; stroke:var(--dp-border2);}
+#dijkstra-app .road-lbl text{fill:var(--dp-text); font-size:12px; font-weight:500;}
+#dijkstra-app g.road.is-blocked .road-lbl text{fill:var(--dp-red);}
+#dijkstra-app g.road.is-blocked .road-lbl rect{stroke:rgba(239,68,68,.5);}
+#dijkstra-app g.road.selected .road-lbl rect{stroke:var(--dp-green); stroke-width:1.8;}
+#dijkstra-app .block-icon{fill:var(--dp-red); font-size:13px;}
+#dijkstra-app g.node{cursor:grab;}
+#dijkstra-app g.node.dragging{cursor:grabbing;}
+#dijkstra-app .map-locked g.node{cursor:default;}
+#dijkstra-app g.node circle.main{fill:#ffffff; stroke-width:3; transition:fill .2s, stroke .2s;}
+#dijkstra-app g.node.selnode circle.main{stroke-width:4.5;}
+#dijkstra-app g.node text.letter{fill:var(--dp-text); font-weight:500; pointer-events:none;}
+#dijkstra-app g.node text.sub{fill:var(--dp-muted); font-size:11px; pointer-events:none;}
+#dijkstra-app .glyph{pointer-events:none;}
+#dijkstra-app .glyph .ol{fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; transition:stroke .2s, fill .2s;}
+#dijkstra-app .glyph .so{fill:currentColor; stroke:none; transition:fill .2s;}
+#dijkstra-app g.node circle.ring{fill:none; stroke:var(--dp-orange-deep); stroke-width:2.5; opacity:0; animation:dppulse 1s ease-in-out infinite; pointer-events:none;}
+#dijkstra-app g.node.current circle.ring{opacity:1;}
+@keyframes dppulse{0%,100%{stroke-opacity:.95;}50%{stroke-opacity:.15;}}
+@media (prefers-reduced-motion:reduce){#dijkstra-app g.node circle.ring{animation:none; opacity:.7;}}
+#dijkstra-app g.node.visited circle.main{fill:#e9faf0; stroke:var(--dp-green);}
+#dijkstra-app g.node.visited .glyph .ol{stroke:var(--dp-green-deep);}
+#dijkstra-app g.node.visited .glyph .so{fill:var(--dp-green-deep);}
+#dijkstra-app g.node.onroute circle.main{fill:#dcf7e6; stroke:var(--dp-green);}
+#dijkstra-app g.node.onroute .glyph .ol{stroke:var(--dp-green-deep);}
+#dijkstra-app g.node.onroute .glyph .so{fill:var(--dp-green-deep);}
+#dijkstra-app .rsz{fill:#ffffff; stroke:#8b8f98; stroke-width:2; cursor:nwse-resize; visibility:hidden;}
+#dijkstra-app g.node.selnode .rsz{visibility:visible;}
+#dijkstra-app .badge-group{display:none; pointer-events:none;}
+#dijkstra-app .badge-group.on{display:block;}
+#dijkstra-app .badge-rect-start{fill:var(--dp-green-deep);} .badge-rect-end{fill:var(--dp-orange);} .badge-rect-via{fill:var(--dp-blue);}
+#dijkstra-app .badge-text{fill:#ffffff; font-size:10px; font-weight:500; letter-spacing:.6px;}
+#dijkstra-app .badge-text-via{fill:#ffffff;}
+#dijkstra-app .scalebar line{stroke:#5b5f68; stroke-width:2;}
+#dijkstra-app .scalebar text{fill:#5b5f68; font-size:11px; font-weight:500;}
+#dijkstra-app .dp-map-hint{font-size:12px; color:var(--dp-muted); margin-top:9px;}
+#dijkstra-app .dp-map-hint b{color:var(--dp-text); font-weight:500;}
+
+/* inspector sidebar */
+#dijkstra-app .nb-inspector{width:258px; flex:none; background:var(--dp-card3); border:1px solid var(--dp-border); border-radius:16px; padding:13px 14px; overflow-y:auto; max-height:640px;}
+@media (max-width:1080px){#dijkstra-app .nb-inspector{width:auto; max-height:none;}}
+#dijkstra-app .insp-title{font-size:11px; font-weight:500; letter-spacing:.8px; text-transform:uppercase; color:var(--dp-dim); margin-bottom:8px;}
+#dijkstra-app .insp-road-row{display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:10px; cursor:pointer; margin-bottom:2px;}
+#dijkstra-app .insp-road-row:hover{background:var(--dp-card2);}
+#dijkstra-app .insp-road-row.sel{background:#f2fcf6; outline:1.5px solid var(--dp-green);}
+#dijkstra-app .insp-road-row .nm{font-size:12.5px; font-weight:500; min-width:66px;}
+#dijkstra-app .insp-road-row .bar{flex:1; height:6px; border-radius:3px; background:var(--dp-card2); overflow:hidden; min-width:24px;}
+#dijkstra-app .insp-road-row .bar i{display:block; height:100%; border-radius:3px; background:var(--dp-green);}
+#dijkstra-app .insp-road-row.is-blocked .bar i{background:var(--dp-red);}
+#dijkstra-app .insp-road-row.is-blocked .nm{color:var(--dp-red);}
+#dijkstra-app .insp-road-row .len{font-size:11.5px; color:var(--dp-muted); font-variant-numeric:tabular-nums; min-width:40px; text-align:right;}
+#dijkstra-app .insp-road-row .bl{font-size:10px; color:var(--dp-red); flex:none;}
+#dijkstra-app .insp-tip{font-size:11.5px; color:var(--dp-muted); line-height:1.6; background:var(--dp-card); border:1px solid var(--dp-border); border-radius:10px; padding:8px 10px;}
+#dijkstra-app .insp-tip b{color:var(--dp-text); font-weight:500;}
+#dijkstra-app .insp-roadname{font-size:15px; font-weight:500; margin-bottom:6px;}
+#dijkstra-app .insp-len{display:flex; align-items:baseline; gap:5px; margin-bottom:4px;}
+#dijkstra-app .insp-len b{font-size:30px; font-weight:500; color:var(--dp-green-deep); letter-spacing:-.5px;}
+#dijkstra-app .insp-len .u{font-size:13px; color:var(--dp-muted);}
+#dijkstra-app .insp-len .src{font-size:10.5px; color:var(--dp-dim); margin-left:4px;}
+#dijkstra-app .insp-breakdown{font-size:11.5px; color:var(--dp-dim); margin-bottom:12px;}
+#dijkstra-app .insp-roles{display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:10px;}
+#dijkstra-app .insp-roles .dp-btn{justify-content:center; padding:8px 6px; font-size:12px; border-radius:12px;}
+#dijkstra-app .insp-roles .dp-btn.onrole{background:var(--dp-card2); border-color:var(--dp-text);}
+#dijkstra-app .dp-btn-danger{background:var(--dp-red); border-color:var(--dp-red); color:#fff;}
+#dijkstra-app .dp-btn-danger:hover{background:#dc2626; border-color:#dc2626;}
+#dijkstra-app .dp-btn-safe{background:#e3f8ec; border-color:#b8ecd0; color:var(--dp-green-deep);}
+#dijkstra-app .dp-btn-block{width:100%; justify-content:center; margin-bottom:8px;}
+#dijkstra-app .insp-sec > .dp-btn{width:100%; justify-content:center;}
+
+/* result */
+#dijkstra-app .nb-big{font-size:34px; font-weight:500; letter-spacing:-.6px; line-height:1.1; color:var(--dp-green-deep);}
+#dijkstra-app .nb-big .unit{font-size:16px; color:var(--dp-muted); letter-spacing:0;}
+#dijkstra-app .dp-pill{display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:3px 10px; border-radius:999px; font-weight:500;}
+#dijkstra-app .dp-pill-green{background:#e3f8ec; color:var(--dp-green-deep);}
+#dijkstra-app .dp-pill-orange{background:#ffeeda; color:var(--dp-orange-deep);}
+#dijkstra-app .nb-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
+#dijkstra-app .nb-tile{border-radius:14px; padding:11px 13px; border:1px solid transparent;}
+#dijkstra-app .nb-tile .lbl{font-size:11.5px; font-weight:500;}
+#dijkstra-app .nb-tile .val{font-size:19px; font-weight:500; margin-top:2px; color:var(--dp-text);}
+#dijkstra-app .nb-tile.t-blue{background:#eef4ff; border-color:#d5e3fd;} .nb-tile.t-blue .lbl{color:var(--dp-blue);}
+#dijkstra-app .nb-tile.t-orange{background:#fff4e6; border-color:#fce0bf;} .nb-tile.t-orange .lbl{color:var(--dp-orange-deep);}
+#dijkstra-app .dp-chips{display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:12px;}
+#dijkstra-app .dp-chip{background:var(--dp-card3); border:1px solid var(--dp-border2); border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:500;}
+#dijkstra-app .dp-chip b{font-weight:500;}
+#dijkstra-app .dp-chip .m{color:var(--dp-green-deep);}
+#dijkstra-app .dp-chip-arrow{color:var(--dp-dim); font-size:12px;}
+#dijkstra-app .dp-status{font-size:12.5px; color:var(--dp-muted); margin-top:10px; min-height:18px;}
+#dijkstra-app .dp-status.err{color:var(--dp-orange-deep);}
+
+/* planner */
+#dijkstra-app .dp-ctl-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+@media (max-width:520px){#dijkstra-app .dp-ctl-grid{grid-template-columns:1fr;}}
+#dijkstra-app label.dp-fl{display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--dp-muted); font-weight:500;}
+#dijkstra-app select.dp-sel{background:var(--dp-card); border:1.5px solid var(--dp-border2); color:var(--dp-text); font:inherit; font-size:13px; border-radius:12px; padding:8px 10px;}
+#dijkstra-app .dp-btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+#dijkstra-app .dp-btn{display:inline-flex; align-items:center; gap:7px; font:inherit; font-size:13px; font-weight:500; border-radius:999px; padding:9px 16px; cursor:pointer; border:1.5px solid var(--dp-border2); background:var(--dp-card); color:var(--dp-text);}
+#dijkstra-app .dp-btn:hover{background:var(--dp-card2);}
+#dijkstra-app .dp-btn-primary{background:var(--dp-green); border-color:var(--dp-green); color:#fff;}
+#dijkstra-app .dp-btn-primary:hover{background:var(--dp-green-deep); border-color:var(--dp-green-deep);}
+#dijkstra-app .dp-btn-blue{color:var(--dp-blue); border-color:#bcd2fb;}
+#dijkstra-app .dp-btn-blue:hover{background:#eef4ff;}
+#dijkstra-app .dp-btn-pink{color:#db2777; border-color:#f3c3dc;}
+#dijkstra-app .dp-btn-pink:hover{background:#fdf0f7;}
+#dijkstra-app .dp-btn svg{width:15px; height:15px;}
+
+/* panels */
+#dijkstra-app .dp-panel[hidden]{display:none;}
+#dijkstra-app .dp-log{background:var(--dp-card3); border:1px solid var(--dp-border); border-radius:14px; padding:12px 14px; max-height:380px; overflow-y:auto; font-family:ui-monospace,'Cascadia Mono',Consolas,Menlo,monospace; font-size:12.5px; line-height:1.6;}
+#dijkstra-app .dp-log div{white-space:pre-wrap; padding:2px 10px; border-left:3px solid transparent; margin:2px 0; border-radius:0 8px 8px 0;}
+#dijkstra-app .lg-leg{color:var(--dp-orange-deep); font-weight:500; border-left-color:var(--dp-orange); background:#fff4e6; margin-top:8px;}
+#dijkstra-app .lg-init{color:var(--dp-dim); border-left-color:var(--dp-border2);}
+#dijkstra-app .lg-pick{color:var(--dp-green-deep); border-left-color:var(--dp-green); background:#e9faf0;}
+#dijkstra-app .lg-relax{color:#3d6fb8; border-left-color:#9dbdf3; background:#eef4ff;}
+#dijkstra-app .lg-dim{color:var(--dp-dim);}
+#dijkstra-app .lg-block{color:var(--dp-red); border-left-color:var(--dp-red); background:#fdf0f0;}
+#dijkstra-app .lg-done{color:var(--dp-green-deep); font-weight:500; border-left-color:var(--dp-green); background:#dcf7e6;}
+#dijkstra-app .lg-placeholder{color:var(--dp-dim); border-left-color:transparent;}
+#dijkstra-app .dp-logbar{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+#dijkstra-app .dp-icobtn{display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; border:1.5px solid var(--dp-border2); background:var(--dp-card); color:var(--dp-text); cursor:pointer;}
+#dijkstra-app .dp-icobtn:hover{background:var(--dp-card2);}
+#dijkstra-app .dp-icobtn svg{width:15px; height:15px;}
+#dijkstra-app .dp-playwrap svg.ic-play{display:block;} #dijkstra-app .dp-playwrap svg.ic-pause{display:none;}
+#dijkstra-app .dp-playwrap.playing svg.ic-play{display:none;} #dijkstra-app .dp-playwrap.playing svg.ic-pause{display:block;}
+#dijkstra-app .dp-playwrap{border-color:var(--dp-green); color:var(--dp-green-deep);}
+#dijkstra-app .dp-progress{margin-left:auto; font-size:12px; color:var(--dp-muted); font-weight:500;}
+
+/* table */
+#dijkstra-app table.dp-table{width:100%; border-collapse:collapse; font-size:13px;}
+#dijkstra-app .dp-table th{text-align:left; color:var(--dp-muted); font-weight:500; font-size:12px; padding:7px 10px; border-bottom:1.5px solid var(--dp-border2);}
+#dijkstra-app .dp-table td{padding:8px 10px; border-bottom:1px solid var(--dp-border);}
+#dijkstra-app .dp-table tr:last-child td{border-bottom:0;}
+#dijkstra-app .dp-table td.num{font-variant-numeric:tabular-nums;}
+#dijkstra-app .dp-tag{display:inline-block; font-size:11px; padding:2px 9px; border-radius:999px; font-weight:500;}
+#dijkstra-app .dp-tag-un{background:var(--dp-card2); color:var(--dp-muted);}
+#dijkstra-app .dp-tag-fr{background:#ffeeda; color:var(--dp-orange-deep);}
+#dijkstra-app .dp-tag-vi{background:#e3f8ec; color:var(--dp-green-deep);}
+
+/* roads editor */
+#dijkstra-app .dp-roadrow{display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:12px; border:1.5px solid var(--dp-border); background:var(--dp-card3); margin-bottom:6px; cursor:pointer;}
+#dijkstra-app .dp-roadrow.sel{border-color:var(--dp-green); background:#f2fcf6;}
+#dijkstra-app .dp-roadrow .nm{font-size:13px; font-weight:500; min-width:74px;}
+#dijkstra-app .dp-roadrow .metro{font-size:11px; color:var(--dp-dim);}
+#dijkstra-app .dp-roadrow .bar{flex:1; height:7px; border-radius:4px; background:var(--dp-card2); overflow:hidden; min-width:40px;}
+#dijkstra-app .dp-roadrow .bar i{display:block; height:100%; border-radius:4px; background:var(--dp-green);}
+#dijkstra-app .dp-roadrow.is-blocked .bar i{background:var(--dp-red);}
+#dijkstra-app .dp-roadrow.is-blocked{border-color:rgba(239,68,68,.4); background:#fdf1f1;}
+#dijkstra-app .dp-roadrow.is-blocked .nm{color:var(--dp-red);}
+#dijkstra-app .dp-roadlist{display:flex; flex-direction:column; gap:2px;}
+#dijkstra-app .dp-switch{position:relative; width:36px; height:21px; flex:none; margin-left:auto;}
+#dijkstra-app .dp-switch input{position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer;}
+#dijkstra-app .dp-switch .tr{position:absolute; inset:0; background:var(--dp-card2); border:1px solid var(--dp-border2); border-radius:999px; transition:background .15s; pointer-events:none;}
+#dijkstra-app .dp-switch .kn{position:absolute; top:3px; left:3px; width:13px; height:13px; border-radius:50%; background:#a8a49a; transition:transform .15s, background .15s; pointer-events:none;}
+#dijkstra-app .dp-switch input:checked ~ .tr{background:#fde3e3; border-color:rgba(239,68,68,.45);}
+#dijkstra-app .dp-switch input:checked ~ .kn{transform:translateX(15px); background:var(--dp-red);}
+
+/* save tab */
+#dijkstra-app .dp-inp{width:100%; background:var(--dp-card); border:1.5px solid var(--dp-border2); color:var(--dp-text); font:inherit; font-size:13px; border-radius:12px; padding:9px 12px;}
+#dijkstra-app .dp-area{width:100%; min-height:96px; background:var(--dp-card3); border:1px solid var(--dp-border); color:var(--dp-muted); font-family:ui-monospace,Consolas,monospace; font-size:11px; border-radius:12px; padding:10px 12px; resize:vertical;}
+#dijkstra-app .save-row{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--dp-border); background:var(--dp-card3); border-radius:12px; margin-bottom:8px;}
+#dijkstra-app .save-row .sn{font-size:13.5px; font-weight:500;}
+#dijkstra-app .save-row .sd{font-size:11px; color:var(--dp-dim);}
+#dijkstra-app .save-row .meta{font-size:11px; color:var(--dp-muted);}
+#dijkstra-app .save-row .acts{margin-left:auto; display:flex; gap:6px;}
+#dijkstra-app .save-row .acts .dp-btn{padding:6px 12px; font-size:12px;}
+#dijkstra-app .save-empty{font-size:12.5px; color:var(--dp-dim); padding:14px; text-align:center; border:1.5px dashed var(--dp-border2); border-radius:12px;}
+
+/* math panel */
+#dijkstra-app .dp-math p{font-size:13.5px; color:#3a3f4a; line-height:1.65; margin:8px 0;}
+#dijkstra-app .dp-math b{color:var(--dp-text);}
+#dijkstra-app .dp-math code{background:var(--dp-card2); border-radius:6px; padding:1px 6px; font-size:12px;}
+#dijkstra-app pre.dp-pseudo{background:var(--dp-card3); border:1px solid var(--dp-border); border-radius:14px; padding:14px 16px; font-family:ui-monospace,Consolas,monospace; font-size:12.5px; line-height:1.7; color:#3a3f4a; overflow-x:auto; margin:10px 0;}
+#dijkstra-app .dp-math ul{margin:8px 0; padding-left:20px; font-size:13px; color:#3a3f4a; line-height:1.7;}
+#dijkstra-app .dp-math h4{margin:14px 0 2px; font-size:13.5px; font-weight:500; color:var(--dp-text);}
+</style>
+
+<div class="dp-shell">
+
+  <header class="nb-hero">
+    <div class="nb-logo"><i data-lucide="route" aria-hidden="true"></i></div>
+    <div class="nb-title">
+      <h1>CampusRoute</h1>
+      <p>Drag buildings, block roads, watch Dijkstra think · to scale: 9 px = 1 m</p>
+    </div>
+    <nav class="dp-tabs" role="tablist" aria-label="App sections">
+      <button type="button" class="dp-tab active" role="tab" id="tab-map" aria-controls="panel-map" aria-selected="true" style="--acc:#16a34a"><i data-lucide="map" aria-hidden="true"></i>Campus Map</button>
+      <button type="button" class="dp-tab" role="tab" id="tab-algo" aria-controls="panel-algo" aria-selected="false" style="--acc:#3b82f6"><i data-lucide="terminal" aria-hidden="true"></i>Algorithm</button>
+      <button type="button" class="dp-tab" role="tab" id="tab-roads" aria-controls="panel-roads" aria-selected="false" style="--acc:#ea580c"><i data-lucide="construction" aria-hidden="true"></i>Roads &amp; Blocks</button>
+      <button type="button" class="dp-tab" role="tab" id="tab-save" aria-controls="panel-save" aria-selected="false" style="--acc:#db2777"><i data-lucide="save" aria-hidden="true"></i>Saved</button>
+      <button type="button" class="dp-tab" role="tab" id="tab-math" aria-controls="panel-math" aria-selected="false" style="--acc:#8b5cf6"><i data-lucide="book-open" aria-hidden="true"></i>The Math</button>
+    </nav>
+  </header>
+
+  <!-- ============ TAB: CAMPUS MAP ============ -->
+  <div class="dp-panel" id="panel-map" role="tabpanel" aria-labelledby="tab-map">
+    <div class="nb-card nb-stripe" style="--stripe:linear-gradient(90deg,#22c55e,#3b82f6,#8b5cf6,#fb923c,#f472b6);">
+      <div class="nb-card-head">
+        <span class="nb-sq" style="background:linear-gradient(135deg,#22c55e,#8b5cf6)"></span>
+        <h3>Campus Map — drag to build your campus</h3>
+        <div class="dp-legend">
+          <span class="dp-lg"><i style="background:#16a34a"></i>Start</span>
+          <span class="dp-lg"><i style="background:#fb923c"></i>Destination</span>
+          <span class="dp-lg"><i style="background:#3b82f6"></i>Stop via</span>
+          <span class="dp-lg"><i style="background:#22c55e"></i>Shortest route</span>
+          <span class="dp-lg"><i style="background:#ef4444"></i>Blocked road</span>
+        </div>
+      </div>
+      <div class="nb-map-flex">
+        <div class="dp-map-wrap">
+          <svg id="map" viewBox="0 0 960 530" role="img" aria-label="Interactive campus map: drag buildings to move them, drag the handle to resize, click roads to block"></svg>
+        </div>
+        <aside class="nb-inspector" id="inspector">
+          <div class="insp-sec" id="insp-default">
+            <div class="insp-title">Roads — sizes from the map</div>
+            <div id="insp-roadlist"></div>
+            <div class="insp-title" style="margin-top:14px">How to use</div>
+            <div class="insp-tip">
+              🖐 <b>Drag a building</b> to move it — road lengths update automatically (the map is to scale). The two straight diagonals always pass through junction M, which stays exactly at their crossing.<br><br>
+              ⭕ <b>Click a building</b> to select it, then drag the white handle to resize it or set its role.<br><br>
+              🚧 <b>Click a road</b> to select it, then block or unblock it here. Blocking a diagonal blocks the whole road.
+            </div>
+          </div>
+          <div class="insp-sec" id="insp-road" hidden>
+            <div class="insp-title">Selected road</div>
+            <div class="insp-roadname" id="ir-name">C ↔ B</div>
+            <div class="insp-len"><b id="ir-len">65</b><span class="u">m</span><span class="src">measured from the map</span></div>
+            <div class="insp-breakdown" id="ir-break" hidden></div>
+            <button type="button" class="dp-btn dp-btn-danger dp-btn-block" id="ir-block">⛔ Block this road</button>
+            <button type="button" class="dp-btn" id="ir-deselect">Deselect</button>
+            <div class="insp-tip" style="margin-top:10px">💡 Want this road shorter or longer? Drag either building it connects — the length follows the map.</div>
+          </div>
+          <div class="insp-sec" id="insp-node" hidden>
+            <div class="insp-title">Selected building</div>
+            <div class="insp-roadname" id="in-name">Building C</div>
+            <div class="insp-roles">
+              <button type="button" class="dp-btn role-btn" data-role="start">Start</button>
+              <button type="button" class="dp-btn role-btn" data-role="end">Destination</button>
+              <button type="button" class="dp-btn role-btn" data-role="via1">Stop 1</button>
+              <button type="button" class="dp-btn role-btn" data-role="via2">Stop 2</button>
+              <button type="button" class="dp-btn role-btn" data-role="clear">Clear role</button>
+            </div>
+            <div class="insp-tip">🖐 Drag to move · ⭕ drag the white handle to resize.</div>
+          </div>
+        </aside>
+      </div>
+      <div class="dp-map-hint" id="map-hint">Click a building to select it (roles appear in the sidebar) · drag buildings to move them and watch road sizes change · click a road to block it.</div>
+    </div>
+
+    <div class="nb-grid2" style="margin-top:14px;">
+      <div class="nb-card nb-stripe" style="--stripe:#22c55e;">
+        <div class="nb-card-head">
+          <span class="nb-sq" style="background:#22c55e"></span>
+          <h3>Shortest Route</h3>
+          <span class="dp-pill dp-pill-green" id="delta-pill" hidden style="margin-left:auto"></span>
+        </div>
+        <div class="nb-big"><span id="total-dist">—</span> <span class="unit" id="total-unit">m</span></div>
+        <div class="nb-tiles">
+          <div class="nb-tile t-blue"><div class="lbl">Nodes visited</div><div class="val" id="stat-visited">—</div></div>
+          <div class="nb-tile t-orange"><div class="lbl">Roads on route</div><div class="val" id="stat-hops">—</div></div>
+        </div>
+        <div class="dp-chips" id="route-chips"></div>
+        <div class="dp-status" id="route-status" aria-live="polite">Pick a start and destination, then press Find Route.</div>
+      </div>
+
+      <div class="nb-card nb-stripe" style="--stripe:#3b82f6;">
+        <div class="nb-card-head">
+          <span class="nb-sq" style="background:#3b82f6"></span>
+          <h3>Route Planner</h3>
+        </div>
+        <div class="dp-ctl-grid">
+          <label class="dp-fl">Start
+            <select class="dp-sel" id="sel-start"></select>
+          </label>
+          <label class="dp-fl">Destination
+            <select class="dp-sel" id="sel-end"></select>
+          </label>
+          <label class="dp-fl">Stop via 1 <span style="color:var(--dp-dim)">(optional)</span>
+            <select class="dp-sel" id="sel-via1"></select>
+          </label>
+          <label class="dp-fl">Stop via 2 <span style="color:var(--dp-dim)">(optional)</span>
+            <select class="dp-sel" id="sel-via2"></select>
+          </label>
+        </div>
+        <div class="dp-btnrow">
+          <button type="button" class="dp-btn dp-btn-primary" id="btn-find"><i data-lucide="play" aria-hidden="true"></i>Find Route</button>
+          <button type="button" class="dp-btn dp-btn-blue" id="btn-clear-blocks"><i data-lucide="unlock" aria-hidden="true"></i>Unblock all</button>
+          <button type="button" class="dp-btn" id="btn-restore" data-tooltip="Put every building back in its original spot and size"><i data-lucide="map-pin" aria-hidden="true"></i>Restore layout</button>
+          <button type="button" class="dp-btn" id="btn-reset"><i data-lucide="rotate-ccw" aria-hidden="true"></i>Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB: ALGORITHM ============ -->
+  <div class="dp-panel" id="panel-algo" role="tabpanel" aria-labelledby="tab-algo" hidden>
+    <div class="nb-grid2">
+      <div class="nb-card nb-stripe" style="--stripe:#16a34a;">
+        <div class="nb-card-head dp-logbar">
+          <span class="nb-sq" style="background:#16a34a"></span>
+          <h3>Dijkstra's Log</h3>
+          <button type="button" class="dp-icobtn dp-playwrap" id="btn-play" data-tooltip="Play / pause the algorithm" aria-label="Play or pause">
+            <i class="ic-play" data-lucide="play" aria-hidden="true"></i><i class="ic-pause" data-lucide="pause" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="dp-icobtn" id="btn-step" data-tooltip="One step forward" aria-label="Step forward"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+          <button type="button" class="dp-icobtn" id="btn-skip" data-tooltip="Jump to final result" aria-label="Skip to end"><i data-lucide="skip-forward" aria-hidden="true"></i></button>
+          <button type="button" class="dp-icobtn" id="btn-restart" data-tooltip="Replay from step 1" aria-label="Restart"><i data-lucide="rotate-ccw" aria-hidden="true"></i></button>
+          <span class="dp-progress" id="log-progress"></span>
+        </div>
+        <div class="dp-log" id="log-lines"><div class="lg-placeholder">Set a start and destination on the Campus Map tab, then press Find Route — every step of the algorithm will be logged here.</div></div>
+      </div>
+      <div class="nb-card nb-stripe" style="--stripe:#3b82f6;">
+        <div class="nb-card-head">
+          <span class="nb-sq" style="background:#3b82f6"></span>
+          <h3>Node States — distance, predecessor, status</h3>
+          <span class="dp-progress" id="table-leg"></span>
+        </div>
+        <table class="dp-table">
+          <thead><tr><th>Building</th><th class="num">dist (m)</th><th>Comes via</th><th>Status</th></tr></thead>
+          <tbody id="node-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB: ROADS & BLOCKS ============ -->
+  <div class="dp-panel" id="panel-roads" role="tabpanel" aria-labelledby="tab-roads" hidden>
+    <div class="nb-card nb-stripe" style="--stripe:#ea580c;">
+      <div class="nb-card-head">
+        <span class="nb-sq" style="background:#ea580c"></span>
+        <h3>Roads &amp; Blocks — lengths are measured from the map; drag buildings to change them</h3>
+        <span class="dp-progress" id="blocked-count"></span>
+      </div>
+      <div class="dp-roadlist" id="road-list"></div>
+    </div>
+  </div>
+
+  <!-- ============ TAB: SAVED ============ -->
+  <div class="dp-panel" id="panel-save" role="tabpanel" aria-labelledby="tab-save" hidden>
+    <div class="nb-grid2">
+      <div class="nb-card nb-stripe" style="--stripe:#db2777;">
+        <div class="nb-card-head">
+          <span class="nb-sq" style="background:#db2777"></span>
+          <h3>Save your design</h3>
+        </div>
+        <p style="font-size:12.5px; color:var(--dp-muted); margin:0 0 10px; line-height:1.6;">A design snapshot stores the whole map: building positions &amp; sizes, blocked roads, start / destination / stops, and the lock state — so you can rebuild your physical model's exact shape any time.</p>
+        <label class="dp-fl" style="margin-bottom:10px">Design name
+          <input type="text" class="dp-inp" id="save-name" maxlength="40" aria-label="Design name">
+        </label>
+        <div class="dp-btnrow" style="margin-top:0">
+          <button type="button" class="dp-btn dp-btn-primary" id="btn-save"><i data-lucide="save" aria-hidden="true"></i>Save design</button>
+          <button type="button" class="dp-btn dp-btn-pink" id="btn-export"><i data-lucide="share-2" aria-hidden="true"></i>Export code</button>
+        </div>
+        <div style="margin-top:12px">
+          <div class="insp-title">Export code — copy this to move the design to another device</div>
+          <textarea class="dp-area" id="export-code" readonly aria-label="Export code"></textarea>
+        </div>
+      </div>
+      <div class="nb-card nb-stripe" style="--stripe:#8b5cf6;">
+        <div class="nb-card-head">
+          <span class="nb-sq" style="background:#8b5cf6"></span>
+          <h3>Saved designs</h3>
+          <span class="dp-progress" id="save-count"></span>
+        </div>
+        <div id="save-list"></div>
+        <div style="margin-top:14px">
+          <div class="insp-title">Import code — paste a design code here</div>
+          <textarea class="dp-area" id="import-code" aria-label="Import code"></textarea>
+          <div class="dp-btnrow">
+            <button type="button" class="dp-btn dp-btn-primary" id="btn-import"><i data-lucide="download" aria-hidden="true"></i>Import design</button>
+          </div>
+          <div class="dp-status" id="import-status" role="alert"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB: THE MATH ============ -->
+  <div class="dp-panel dp-math" id="panel-math" role="tabpanel" aria-labelledby="tab-math" hidden>
+    <div class="nb-card nb-stripe" style="--stripe:#8b5cf6;">
+      <div class="nb-card-head">
+        <span class="nb-sq" style="background:#8b5cf6"></span>
+        <h3>How Dijkstra's algorithm finds the shortest route</h3>
+      </div>
+      <p>We model the campus as a <b>weighted graph</b>: each building is a <b>node</b>, each road is an <b>edge</b>, and each edge's <b>weight</b> is the road's length in metres — <b>measured straight from the map you build</b> (9 pixels = 1 metre, see the scale bar). Because every weight is non-negative, Dijkstra's greedy strategy is guaranteed to be optimal.</p>
+      <p><b>M is the central junction</b> — a fixed hub of the campus. The four spoke roads (M↔C, M↔B, M↔D, M↔A) radiate outward from it to each building, and the four perimeter roads connect the buildings around the edge. Dragging a building changes its <b>distance from M</b>, so the spoke lengths follow automatically; M itself never moves.</p>
+      <pre class="dp-pseudo">put every distance = ∞, except Start = 0
+while some unvisited node is reachable:
+    pick the unvisited node u with the smallest distance   ← greedy choice
+    mark u as visited (its distance is now final)
+    for each neighbour v of u connected by an open road:
+        if dist(u) + length(u→v) &lt; dist(v):
+            dist(v) = dist(u) + length(u→v)      ← "relaxing" the edge
+            prev(v) = u
+follow prev pointers back from the Destination → shortest path</pre>
+      <h4>Why the greedy choice is safe</h4>
+      <p>When a node is picked with the smallest tentative distance, no other route can ever improve it — every alternative would have to pass through a node that is already farther away, and roads only <em>add</em> distance.</p>
+      <h4>Complexity</h4>
+      <ul>
+        <li>With a simple scan for the minimum (as in this simulation): <code>O(V²)</code></li>
+        <li>With a binary heap / priority queue: <code>O((V + E) log V)</code></li>
+        <li>Here <code>V = 5</code> nodes and <code>E = 8</code> road segments, so it resolves almost instantly — the step log lets you watch it anyway.</li>
+      </ul>
+      <h4>Multi-stop routes</h4>
+      <p>A route with stops (Start → Stop → Destination) is solved by running Dijkstra <em>once per leg</em> and adding the leg distances — each leg is independently optimal, so their sum is optimal.</p>
+      <h4>Blocked roads</h4>
+      <p>Blocking a road removes its segment(s) from the graph before the run — blocking a diagonal road removes both of its halves, because it is one road. If no route survives, the destination has been cut off from the start.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var SVGNS='http://www.w3.org/2000/svg';
+  var SCALE=9; /* 9 px = 1 metre */
+  var W=960, H=530;
+  var INIT={
+    C:{x:80, y:80, r:40},
+    B:{x:665,y:80, r:34},
+    D:{x:80, y:440,r:48},
+    A:{x:700,y:340,r:26}
+  };
+  var NODES={
+    C:{x:80, y:80, r:40, name:'Building C',    color:'#8b5cf6'},
+    B:{x:665,y:80, r:34, name:'Building B',    color:'#3b82f6'},
+    D:{x:80, y:440,r:48, name:'Building D',    color:'#f59e0b'},
+    A:{x:700,y:340,r:26, name:'Building A',    color:'#f472b6'},
+    M:{x:428,y:226,r:30, name:'Junction M',    color:'#22c55e'}
+  };
+  var KEYS=['C','B','D','A','M'];
+  /* graph edges — 4 perimeter roads + 4 spoke roads from the static hub M */
+  var EDGES=[
+    {id:'CB',a:'C',b:'B',road:'CB',t:0.50,perp:-20},
+    {id:'CD',a:'C',b:'D',road:'CD',t:0.50,perp:28},
+    {id:'CM',a:'C',b:'M',road:'CM',t:0.50,perp:-34},
+    {id:'DM',a:'D',b:'M',road:'DM',t:0.50,perp:34},
+    {id:'MB',a:'M',b:'B',road:'MB',t:0.50,perp:-34},
+    {id:'MA',a:'M',b:'A',road:'MA',t:0.50,perp:30},
+    {id:'BA',a:'B',b:'A',road:'BA',t:0.50,perp:-30},
+    {id:'DA',a:'D',b:'A',road:'DA',t:0.50,perp:26}
+  ];
+  var ROADS={
+    CB:{name:'C ↔ B',a:'C',b:'B',edges:['CB']},
+    CD:{name:'C ↔ D',a:'C',b:'D',edges:['CD']},
+    BA:{name:'B ↔ A',a:'B',b:'A',edges:['BA']},
+    DA:{name:'D ↔ A',a:'D',b:'A',edges:['DA']},
+    CM:{name:'M ↔ C',a:'M',b:'C',edges:['CM']},
+    DM:{name:'M ↔ D',a:'M',b:'D',edges:['DM']},
+    MB:{name:'M ↔ B',a:'M',b:'B',edges:['MB']},
+    MA:{name:'M ↔ A',a:'M',b:'A',edges:['MA']}
+  };
+  var ROAD_LIST=['CB','CD','BA','DA','CM','DM','MB','MA'];
+
+  var blocked={}, startN=null, endN=null, via1=null, via2=null;
+  var route=null, idx=0, playing=false, timer=null;
+  var selNode=null, selRoad=null, drag=null, locked=false;
+  KEYS.forEach(function(k){blocked[k]={};});
+  EDGES.forEach(function(e){blocked[e.id]=false; e.w=1;});
+
+  function $(id){return document.getElementById(id);}
+  function svgEl(t,attrs,parent){var e=document.createElementNS(SVGNS,t);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+  function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+  function meters(px){return Math.max(1,Math.round(px/SCALE));}
+
+  /* ---------- build map ---------- */
+  var map=$('map'), edgeOverlays={}, roadEls={}, nodeEls={};
+  var gRoads=svgEl('g',{},map), gOverlays=svgEl('g',{},map), gLabels=svgEl('g',{},map), gNodes=svgEl('g',{},map);
+
+  /* road bases — 6 physical roads */
+  ROAD_LIST.forEach(function(rid){
+    var r=ROADS[rid], A=NODES[r.a], B=NODES[r.b];
+    var g=svgEl('g',{class:'road'},gRoads);
+    var casing=svgEl('line',{x1:A.x,y1:A.y,x2:B.x,y2:B.y,class:'road-casing'},g);
+    var asph=svgEl('line',{x1:A.x,y1:A.y,x2:B.x,y2:B.y,class:'road-asphalt'},g);
+    var dash=svgEl('line',{x1:A.x,y1:A.y,x2:B.x,y2:B.y,class:'road-dashes'},g);
+    var hit=svgEl('line',{x1:A.x,y1:A.y,x2:B.x,y2:B.y,class:'road-hit'},g);
+    hit.addEventListener('click',function(){selectRoad(rid);});
+    roadEls[rid]={g:g,casing:casing,asph:asph,dash:dash,hit:hit,road:r};
+  });
+
+  /* per-edge overlays + labels (8 segments) */
+  EDGES.forEach(function(e){
+    var og=svgEl('g',{},gOverlays);
+    var tent=svgEl('line',{class:'road-tent',visibility:'hidden'},og);
+    var rb=svgEl('line',{class:'road-routebase',visibility:'hidden'},og);
+    var flow=svgEl('line',{class:'road-flow',visibility:'hidden'},og);
+    edgeOverlays[e.id]={tent:tent,rb:rb,flow:flow};
+    var lbl=svgEl('g',{class:'road-lbl'},gLabels);
+    var rect=svgEl('rect',{x:0,y:-12,width:52,height:24,rx:11},lbl);
+    var txt=svgEl('text',{x:0,y:4,'text-anchor':'middle'},lbl);
+    var bicon=svgEl('text',{x:0,y:-18,'text-anchor':'middle',class:'block-icon',visibility:'hidden'},lbl);
+    bicon.textContent='⛔ blocked';
+    lbl.addEventListener('click',function(){selectRoad(e.road);});
+    e.lbl={rect:rect,txt:txt,bicon:bicon,lbl:lbl};
+  });
+
+  /* distinct pictogram per place: C library, B labs, D cafeteria, A office, M roundabout */
+  function glyphShape(k,parent){
+    var g=svgEl('g',{class:'glyph-shape'},parent);
+    function ol(el){el.setAttribute('class','ol');return el;}
+    function so(el){el.setAttribute('class','so');return el;}
+    if(k==='C'){ /* library: roof + columns */
+      ol(svgEl('path',{d:'M -7 -4 L 0 -9 L 7 -4 Z'},g));
+      ol(svgEl('line',{x1:-7,y1:-4,x2:7,y2:-4},g));
+      ol(svgEl('rect',{x:-5.4,y:-2,width:2.6,height:9},g));
+      ol(svgEl('rect',{x:-1.3,y:-2,width:2.6,height:9},g));
+      ol(svgEl('rect',{x:2.8,y:-2,width:2.6,height:9},g));
+      ol(svgEl('line',{x1:-7,y1:7,x2:7,y2:7},g));
+      ol(svgEl('line',{x1:-7,y1:9,x2:7,y2:9},g));
+    }else if(k==='B'){ /* laboratory: flask */
+      ol(svgEl('path',{d:'M -2 -9 L -2 -3 L -6.5 6 Q -7 8 -5 8 L 5 8 Q 7 8 6.5 6 L 2 -3 L 2 -9 Z'},g));
+      ol(svgEl('line',{x1:-3.5,y1:-9,x2:3.5,y2:-9},g));
+      so(svgEl('rect',{x:-4.6,y:2,width:9.2,height:1.8,rx:0.9},g));
+      so(svgEl('circle',{cx:1.5,cy:5,r:1.2},g));
+    }else if(k==='D'){ /* cafeteria: apple */
+      ol(svgEl('path',{d:'M 0 -3 Q -6 -5 -6 1 Q -6 8 0 8 Q 6 8 6 1 Q 6 -5 0 -3 Z'},g));
+      ol(svgEl('path',{d:'M 0 -3 Q 0 -6 0 -8'},g));
+      so(svgEl('path',{d:'M 0 -7 Q 4 -9 5 -6 Q 2 -4.5 0 -7 Z'},g));
+      so(svgEl('circle',{cx:-2,cy:1,r:1},g));
+    }else if(k==='A'){ /* office: building with flag */
+      ol(svgEl('rect',{x:-6,y:-2,width:12,height:11,rx:0.8},g));
+      ol(svgEl('rect',{x:-3.8,y:1,width:2.4,height:3.4},g));
+      ol(svgEl('rect',{x:1.4,y:1,width:2.4,height:3.4},g));
+      ol(svgEl('rect',{x:-2,y:-6,width:4,height:3},g));
+      ol(svgEl('line',{x1:0,y1:-9,x2:0,y2:-2},g));
+      so(svgEl('path',{d:'M 0 -9 L 6 -7.5 L 0 -6 Z'},g));
+    }else{ /* M: roundabout junction */
+      ol(svgEl('circle',{cx:0,cy:0,r:5.2},g));
+      so(svgEl('circle',{cx:0,cy:0,r:1.4},g));
+      ol(svgEl('line',{x1:0,y1:-9,x2:0,y2:-5.2},g));
+      ol(svgEl('line',{x1:0,y1:5.2,x2:0,y2:9},g));
+      ol(svgEl('line',{x1:-9,y1:0,x2:-5.2,y2:0},g));
+      ol(svgEl('line',{x1:5.2,y1:0,x2:9,y2:0},g));
+    }
+    return g;
+  }
+  function buildingGlyph(parent,s,color,k){
+    var g=svgEl('g',{class:'glyph',transform:'translate(0,'+(-s*0.30)+') scale('+s+')',color:color},parent);
+    glyphShape(k,g);
+    return g;
+  }
+
+  KEYS.forEach(function(k){
+    var n=NODES[k];
+    var g=svgEl('g',{class:'node'+(k==='M'?' junction':''),transform:'translate('+n.x+','+n.y+')'},gNodes);
+    var ring=svgEl('circle',{r:n.r+7,class:'ring'},g);
+    var main=svgEl('circle',{r:n.r,class:'main',stroke:n.color},g);
+    var gs=Math.min(1.05, n.r/32);
+    var glyph=buildingGlyph(g,gs,n.color,k);
+    var letter=svgEl('text',{y:n.r*0.42+8,'text-anchor':'middle',class:'letter','font-size':Math.min(24,13+n.r*0.25)},g);
+    letter.textContent=k;
+    var sub=svgEl('text',{y:n.r+18,'text-anchor':'middle',class:'sub'},g);
+    sub.textContent=n.name;
+    var bh=svgEl('g',{class:'badge-group bg-'+k},g);
+    var brect=svgEl('rect',{x:-31,y:-n.r-24,width:62,height:18,rx:9,class:'badge-rect'},bh);
+    var btxt=svgEl('text',{y:-n.r-11,'text-anchor':'middle',class:'badge-text'},bh);
+    var handle=svgEl('circle',{cx:(n.r+10)*0.707,cy:-(n.r+10)*0.707,r:7,class:'rsz'},g);
+    var hit=svgEl('circle',{r:n.r+12,fill:'rgba(0,0,0,0)'},g);
+    nodeEls[k]={g:g,ring:ring,main:main,glyph:glyph,letter:letter,sub:sub,bh:bh,brect:brect,btxt:btxt,handle:handle,hit:hit};
+    attachNodeDrag(g,k);
+  });
+
+  /* scale bar */
+  var sb=svgEl('g',{class:'scalebar',transform:'translate(822,500)'},map);
+  svgEl('line',{x1:0,y1:0,x2:90,y2:0},sb);
+  svgEl('line',{x1:0,y1:-5,x2:0,y2:5},sb);
+  svgEl('line',{x1:45,y1:-4,x2:45,y2:4},sb);
+  svgEl('line',{x1:90,y1:-5,x2:90,y2:5},sb);
+  var sbt=svgEl('text',{x:45,y:-9,'text-anchor':'middle'},sb);
+  sbt.textContent='10 m';
+
+  /* ---------- geometry ---------- */
+  function updateNodeVisual(k){
+    var n=NODES[k], p=nodeEls[k];
+    p.g.setAttribute('transform','translate('+n.x+','+n.y+')');
+    p.ring.setAttribute('r',n.r+7);
+    p.main.setAttribute('r',n.r);
+    p.glyph.setAttribute('transform','translate(0,'+(-n.r*0.30)+') scale('+Math.min(1.05,n.r/32)+')');
+    p.letter.setAttribute('y',n.r*0.42+8);
+    p.letter.setAttribute('font-size',Math.min(24,13+n.r*0.25));
+    p.sub.setAttribute('y',n.r+18);
+    p.brect.setAttribute('y',-n.r-24);
+    p.btxt.setAttribute('y',-n.r-11);
+    p.handle.setAttribute('cx',(n.r+10)*0.707);
+    p.handle.setAttribute('cy',-(n.r+10)*0.707);
+    p.hit.setAttribute('r',n.r+12);
+  }
+  /* junction M is a static hub — buildings and spoke lengths are measured from it */
+  function updateJunction(){ /* kept for layout refreshes; M does not move */
+    updateNodeVisual('M');
+  }
+  function edgeWeight(e){
+    var A=NODES[e.a], B=NODES[e.b];
+    return meters(Math.hypot(A.x-B.x,A.y-B.y));
+  }
+  function roadLen(rid){
+    return ROADS[rid].edges.reduce(function(a,id){
+      var e=EDGES.find(function(x){return x.id===id;}); return a+e.w;
+    },0);
+  }
+  function updateEdgeGeom(e){
+    var A=NODES[e.a], B=NODES[e.b];
+    e.w=edgeWeight(e);
+    var o=edgeOverlays[e.id];
+    [o.tent,o.rb,o.flow].forEach(function(l){
+      l.setAttribute('x1',A.x);l.setAttribute('y1',A.y);
+      l.setAttribute('x2',B.x);l.setAttribute('y2',B.y);
+    });
+    var dx=B.x-A.x, dy=B.y-A.y, L=Math.hypot(dx,dy)||1;
+    e.lx=A.x+dx*e.t - dy/L*e.perp; e.ly=A.y+dy*e.t + dx/L*e.perp;
+    var s=e.w+' m', wid=String(s).length*7.6+18;
+    e.lbl.rect.setAttribute('x',e.lx-wid/2); e.lbl.rect.setAttribute('y',e.ly-12); e.lbl.rect.setAttribute('width',wid);
+    e.lbl.txt.setAttribute('x',e.lx); e.lbl.txt.setAttribute('y',e.ly+4); e.lbl.txt.textContent=s;
+    e.lbl.bicon.setAttribute('x',e.lx); e.lbl.bicon.setAttribute('y',e.ly-18);
+    e.lbl.bicon.setAttribute('visibility',blocked[e.id]?'visible':'hidden');
+  }
+  function updateRoadBase(rid){
+    var p=roadEls[rid], r=ROADS[rid], A=NODES[r.a], B=NODES[r.b];
+    [p.casing,p.asph,p.dash,p.hit].forEach(function(l){
+      l.setAttribute('x1',A.x);l.setAttribute('y1',A.y);
+      l.setAttribute('x2',B.x);l.setAttribute('y2',B.y);
+    });
+    var b=r.edges.some(function(id){return blocked[id];});
+    p.g.classList.toggle('is-blocked',b);
+  }
+  function refreshAllRoads(){
+    updateJunction();
+    EDGES.forEach(function(e){updateEdgeGeom(e);});
+    ROAD_LIST.forEach(function(rid){updateRoadBase(rid);});
+    syncRoadRows(); refreshInspBars();
+  }
+
+  function roadIsBlocked(rid){
+    return ROADS[rid].edges.some(function(id){return blocked[id];});
+  }
+  function refreshBlockedVisual(){
+    ROAD_LIST.forEach(function(rid){updateRoadBase(rid);});
+    EDGES.forEach(function(e){
+      e.lbl.bicon.setAttribute('visibility',blocked[e.id]?'visible':'hidden');
+    });
+    var cnt=ROAD_LIST.filter(function(rid){return roadIsBlocked(rid);}).length;
+    $('blocked-count').textContent=cnt? cnt+' road'+(cnt>1?'s':'')+' blocked':'all roads open';
+    ROAD_LIST.forEach(function(rid){
+      var b=roadIsBlocked(rid);
+      var r=rowRefs[rid];
+      if(r){r.row.classList.toggle('is-blocked',b); r.checkbox.checked=b;}
+      var ir=inspRows[rid];
+      if(ir) ir.row.classList.toggle('is-blocked',b);
+    });
+    if(selRoad) syncInspRoad();
+  }
+
+  /* ---------- drag & resize ---------- */
+  function svgPoint(ev){
+    var pt=map.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
+    return pt.matrixTransform(map.getScreenCTM().inverse());
+  }
+  var pendingClick=null;
+  function attachNodeDrag(g,k){
+    g.addEventListener('pointerdown',function(ev){
+      if(ev.button) return;
+      var pt=svgPoint(ev), n=NODES[k];
+      if(locked||k==='M'){ pendingClick={node:k}; return; }
+      var isHandle=ev.target.classList&&ev.target.classList.contains('rsz');
+      drag={type:isHandle?'resize':'move',node:k,sx:pt.x,sy:pt.y,ox:n.x,oy:n.y,orr:n.r,moved:false};
+      try{g.setPointerCapture(ev.pointerId);}catch(_e){}
+      g.classList.add('dragging');
+      ev.preventDefault();
+    });
+    g.addEventListener('pointermove',function(ev){
+      if(!drag||drag.node!==k) return;
+      var pt=svgPoint(ev), n=NODES[k];
+      if(drag.type==='move'){
+        var dx=pt.x-drag.sx, dy=pt.y-drag.sy;
+        if(!drag.moved&&Math.abs(dx)+Math.abs(dy)>4) drag.moved=true;
+        if(drag.moved){
+          n.x=clamp(drag.ox+dx, n.r+16, W-n.r-16);
+          n.y=clamp(drag.oy+dy, n.r+42, H-n.r-34);
+          updateNodeVisual(k);
+          EDGES.forEach(function(e){ if(e.a===k||e.b===k) updateEdgeGeom(e); });
+          ROAD_LIST.forEach(function(rid){updateRoadBase(rid);});
+        }
+      }else{
+        var d2=Math.hypot(pt.x-n.x,pt.y-n.y);
+        n.r=clamp(Math.round(d2)-10,18,60);
+        updateNodeVisual(k);
+        drag.moved=true;
+      }
+    });
+    g.addEventListener('pointerup',function(ev){
+      g.classList.remove('dragging');
+      if(drag&&drag.node===k){
+        var wasMoved=drag.moved;
+        drag=null; pendingClick=null;
+        if(wasMoved){
+          refreshAllRoads();
+          if(route){computeRoute(); showFinal();}
+        }else{
+          selectNode(k);
+        }
+      }else if(pendingClick&&pendingClick.node===k){
+        pendingClick=null;
+        selectNode(k);
+      }
+    });
+    g.addEventListener('pointercancel',function(){
+      if(drag&&drag.node===k){g.classList.remove('dragging'); drag=null;}
+      pendingClick=null;
+    });
+  }
+
+  /* ---------- inspector ---------- */
+  var inspRows={};
+  (function buildInspRoads(){
+    var list=$('insp-roadlist');
+    ROAD_LIST.forEach(function(rid){
+      var row=document.createElement('div'); row.className='insp-road-row';
+      var nm=document.createElement('span'); nm.className='nm'; nm.textContent=ROADS[rid].name.replace(' (via M)','·M');
+      var bar=document.createElement('span'); bar.className='bar'; var bi=document.createElement('i'); bar.appendChild(bi);
+      var len=document.createElement('span'); len.className='len';
+      var bl=document.createElement('span'); bl.className='bl';
+      row.appendChild(nm); row.appendChild(bar); row.appendChild(len); row.appendChild(bl);
+      row.addEventListener('click',function(){selectRoad(rid);});
+      list.appendChild(row);
+      inspRows[rid]={row:row,len:len,bar:bi,blocked:bl};
+    });
+  })();
+  function syncRoadRows(){
+    var totals={}; ROAD_LIST.forEach(function(rid){totals[rid]=roadLen(rid);});
+    var maxw=Math.max.apply(null,ROAD_LIST.map(function(rid){return totals[rid];}));
+    ROAD_LIST.forEach(function(rid){
+      var t=totals[rid];
+      var r=rowRefs[rid];
+      if(r){r.len.textContent=t+' m'; r.bar.style.width=Math.round(t/maxw*100)+'%';}
+      var ir=inspRows[rid];
+      if(ir){ir.len.textContent=t+' m'; ir.bar.style.width=Math.round(t/maxw*100)+'%'; ir.blocked.textContent=roadIsBlocked(rid)?'⛔':'';}
+    });
+    if(selRoad) syncInspRoad();
+  }
+  function refreshInspBars(){
+    var totals={}; ROAD_LIST.forEach(function(rid){totals[rid]=roadLen(rid);});
+    var maxw=Math.max.apply(null,ROAD_LIST.map(function(rid){return totals[rid];}));
+    ROAD_LIST.forEach(function(rid){
+      var ir=inspRows[rid];
+      ir.len.textContent=totals[rid]+' m';
+      ir.bar.style.width=Math.round(totals[rid]/maxw*100)+'%';
+      ir.blocked.textContent=roadIsBlocked(rid)?'⛔':'';
+    });
+    if(selRoad) syncInspRoad();
+  }
+  function showInsp(which){
+    $('insp-default').hidden=which!=='default';
+    $('insp-road').hidden=which!=='road';
+    $('insp-node').hidden=which!=='node';
+  }
+  function syncInspRoad(){
+    var rid=selRoad; if(!rid) return;
+    var r=ROADS[rid];
+    $('ir-name').textContent=r.name+' · '+NODES[r.a].name+' to '+NODES[r.b].name;
+    var total=roadLen(rid);
+    $('ir-len').textContent=total;
+    var brk=$('ir-break');
+    if(r.edges.length>1){
+      brk.hidden=false;
+      var e1=EDGES.find(function(x){return x.id===r.edges[0];});
+      var e2=EDGES.find(function(x){return x.id===r.edges[1];});
+      brk.textContent='one straight road through M: '+e1.w+' m ('+e1.a+'–M) + '+e2.w+' m (M–'+e2.b+')';
+    }else brk.hidden=true;
+    var b=roadIsBlocked(rid), btn=$('ir-block');
+    btn.textContent=b?'✓ Unblock this road':'⛔ Block this road';
+    btn.className='dp-btn dp-btn-block '+(b?'dp-btn-safe':'dp-btn-danger');
+  }
+  function syncInspNode(){
+    var k=selNode; if(!k) return;
+    $('in-name').textContent=NODES[k].name;
+    document.querySelectorAll('#insp-node .role-btn').forEach(function(btn){
+      var role=btn.dataset.role, on=false;
+      if(role==='start')on=startN===k; else if(role==='end')on=endN===k;
+      else if(role==='via1')on=via1===k; else if(role==='via2')on=via2===k;
+      else on=(startN!==k&&endN!==k&&via1!==k&&via2!==k);
+      btn.classList.toggle('onrole',on);
+    });
+    var tip=$('insp-node').querySelector('.insp-tip');
+    tip.textContent=(k==='M')
+      ? 'M is the central junction — a fixed hub. The four spoke roads (M↔C, M↔B, M↔D, M↔A) radiate from it, and their lengths change as you drag buildings closer or farther away.'
+      : '🖐 Drag to move · ⭕ drag the white handle to resize.';
+  }
+  function clearSelClasses(){
+    Object.keys(nodeEls).forEach(function(k){nodeEls[k].g.classList.remove('selnode');});
+    ROAD_LIST.forEach(function(rid){roadEls[rid].g.classList.remove('selected');});
+    Object.keys(inspRows).forEach(function(k){inspRows[k].row.classList.remove('sel');});
+    Object.keys(rowRefs).forEach(function(k){rowRefs[k].row.classList.remove('sel');});
+  }
+  function selectNode(k){
+    clearSelClasses();
+    selNode=k; selRoad=null;
+    nodeEls[k].g.classList.add('selnode');
+    syncInspNode(); showInsp('node');
+  }
+  function selectRoad(rid){
+    clearSelClasses();
+    selRoad=rid; selNode=null;
+    roadEls[rid].g.classList.add('selected');
+    if(inspRows[rid]) inspRows[rid].row.classList.add('sel');
+    if(rowRefs[rid]) rowRefs[rid].row.classList.add('sel');
+    syncInspRoad(); showInsp('road');
+  }
+  function deselect(){
+    clearSelClasses(); selNode=null; selRoad=null; showInsp('default');
+  }
+  $('ir-deselect').addEventListener('click',deselect);
+  $('ir-block').addEventListener('click',function(){
+    if(!selRoad) return;
+    setRoadBlocked(selRoad, !roadIsBlocked(selRoad));
+  });
+  document.querySelectorAll('#insp-node .role-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var k=selNode; if(!k) return;
+      var role=btn.dataset.role;
+      if(role==='start'){startN=(startN===k)?null:k;}
+      else if(role==='end'){endN=(endN===k)?null:k;}
+      else if(role==='via1'){via1=(via1===k)?null:k;}
+      else if(role==='via2'){via2=(via2===k)?null:k;}
+      else{if(startN===k)startN=null; if(endN===k)endN=null; if(via1===k)via1=null; if(via2===k)via2=null;}
+      syncSelects(); renderBadges(); syncInspNode();
+      if(startN&&endN) findRoute(false);
+      else {route=null; clearOverlays(); updateStats();}
+    });
+  });
+
+  /* ---------- selects ---------- */
+  var selStart=$('sel-start'), selEnd=$('sel-end'), selV1=$('sel-via1'), selV2=$('sel-via2');
+  [selStart,selEnd,selV1,selV2].forEach(function(s){
+    var o=document.createElement('option'); o.value=''; o.textContent='— choose —'; s.appendChild(o);
+    KEYS.forEach(function(k){
+      var op=document.createElement('option'); op.value=k; op.textContent=k+' · '+NODES[k].name; s.appendChild(op);
+    });
+  });
+
+  /* ---------- roads list (Roads & Blocks tab) ---------- */
+  var roadList=$('road-list'), rowRefs={};
+  ROAD_LIST.forEach(function(rid){
+    var r=ROADS[rid];
+    var row=document.createElement('div'); row.className='dp-roadrow'; row.dataset.road=rid;
+    var dot=document.createElement('span'); dot.className='nb-sq'; dot.style.background=NODES[r.a].color; dot.style.flex='none';
+    var nm=document.createElement('span'); nm.className='nm'; nm.textContent=r.name;
+    var bar=document.createElement('span'); bar.className='bar'; var bi=document.createElement('i'); bar.appendChild(bi);
+    var metro=document.createElement('span'); metro.className='metro';
+    var sw=document.createElement('label'); sw.className='dp-switch';
+    sw.innerHTML='<input type="checkbox" aria-label="Block road '+r.name+'"><span class="tr"></span><span class="kn"></span>';
+    sw.querySelector('input').addEventListener('change',function(ev){
+      setRoadBlocked(rid, ev.target.checked);
+    });
+    row.appendChild(dot); row.appendChild(nm); row.appendChild(bar); row.appendChild(metro); row.appendChild(sw);
+    row.addEventListener('click',function(ev){
+      if(rowRefs[rid].checkbox.contains(ev.target)) return;
+      selectRoad(rid);
+      $('tab-map').click();
+    });
+    roadList.appendChild(row);
+    rowRefs[rid]={row:row,len:metro,bar:bi,checkbox:sw.querySelector('input')};
+  });
+
+  function setRoadBlocked(rid,b){
+    ROADS[rid].edges.forEach(function(id){ blocked[id]=!!b; });
+    refreshBlockedVisual();
+    if(route){computeRoute(); showFinal();}
+  }
+
+  /* ---------- lock ---------- */
+  function setLocked(b){
+    locked=!!b;
+    var btn=$('btn-lock');
+    btn.innerHTML=locked?'🔓 Unlock layout':'🔒 Lock layout';
+    btn.classList.toggle('dp-btn-safe',locked);
+    var wrap=map.querySelector('.map-locked');
+    if(locked){
+      $('map-hint').innerHTML='<b>🔒 Layout frozen.</b> Buildings can\'t be moved or resized — your physical model\'s shape is safe. You can still select roads and block/unblock them.';
+      if(!wrap){ map.classList.add('map-locked'); }
+    }else{
+      $('map-hint').textContent='Click a building to select it (roles appear in the sidebar) · drag buildings to move them and watch road sizes change · click a road to block it.';
+      map.classList.remove('map-locked');
+    }
+  }
+  var lockBtn=document.createElement('button');
+  lockBtn.type='button'; lockBtn.className='dp-btn'; lockBtn.id='btn-lock';
+  lockBtn.setAttribute('data-tooltip','Freeze the map so buildings cannot be moved accidentally');
+  lockBtn.innerHTML='🔒 Lock layout';
+  document.querySelector('#panel-map .nb-card-head').appendChild(lockBtn);
+  lockBtn.addEventListener('click',function(){ setLocked(!locked); });
+
+  /* ---------- tabs ---------- */
+  var tabs=[
+    {tab:$('tab-map'),panel:$('panel-map')},
+    {tab:$('tab-algo'),panel:$('panel-algo')},
+    {tab:$('tab-roads'),panel:$('panel-roads')},
+    {tab:$('tab-save'),panel:$('panel-save')},
+    {tab:$('tab-math'),panel:$('panel-math')}
+  ];
+  tabs.forEach(function(t){
+    t.tab.addEventListener('click',function(){
+      tabs.forEach(function(u){
+        var on=u===t;
+        u.tab.classList.toggle('active',on);
+        u.tab.setAttribute('aria-selected',on?'true':'false');
+        u.panel.hidden=!on;
+      });
+      if(t.tab===$('tab-save')) renderSaveList();
+    });
+  });
+
+  /* ---------- dijkstra ---------- */
+  function dijkstraLeg(src,dst,legNo,ignoreBlocked){
+    var st=[],dist={},prev={},vis={};
+    KEYS.forEach(function(k){dist[k]=Infinity;prev[k]=null;vis[k]=false;});
+    dist[src]=0;
+    var S=function(){var d={},p={},v=[];KEYS.forEach(function(k){d[k]=dist[k];p[k]=prev[k];if(vis[k])v.push(k);});return {d:d,p:p,v:v};};
+    var bl=ignoreBlocked?[]:ROAD_LIST.filter(function(rid){return roadIsBlocked(rid);}).map(function(rid){return ROADS[rid].name;});
+    st.push({t:'leg',src:src,dst:dst,text:'▶ Leg '+legNo+' — '+src+' → '+dst,snap:S()});
+    st.push({t:'init',text:'init · dist('+src+') = 0 · all others ∞'+(bl.length?' · ⛔ excluding blocked: '+bl.join(', '):''),snap:S()});
+    var Q={}; KEYS.forEach(function(k){Q[k]=true;});
+    var loggedR={};
+    var guard=0;
+    while(guard++<20){
+      var u=null,best=Infinity;
+      for(var k in Q){ if(dist[k]<best){best=dist[k];u=k;} }
+      if(u===null){
+        st.push({t:'stuck',text:'no reachable unvisited node left — run ends',snap:S()}); break;
+      }
+      delete Q[u]; vis[u]=true;
+      st.push({t:'pick',node:u,d:best,text:'visit '+u+' · dist '+best+' m — final ✔',snap:S()});
+      if(u===dst) break;
+      EDGES.forEach(function(e){
+        if(e.a!==u&&e.b!==u) return;
+        var v=e.a===u?e.b:e.a;
+        if(vis[v]) return;
+        if(!ignoreBlocked&&blocked[e.id]){
+          if(!loggedR[e.road]){loggedR[e.road]=1;st.push({t:'blocked',text:'road '+ROADS[e.road].name+' is blocked ⛔ — skipped',snap:S()});}
+          return;
+        }
+        var cand=best+e.w, old=dist[v];
+        if(cand<old){
+          dist[v]=cand; prev[v]=u;
+          st.push({t:'relax',from:u,to:v,improved:true,edge:e.id,
+            text:'relax '+u+'–'+v+': '+best+' + '+e.w+' = '+cand+' m < '+(old===Infinity?'∞':old+' m')+' ⇒ dist('+v+') = '+cand+' m',snap:S()});
+        }else{
+          st.push({t:'relax',from:u,to:v,improved:false,edge:e.id,
+            text:'relax '+u+'–'+v+': '+cand+' m ≥ '+(old===Infinity?'∞':old+' m')+' — keep current',snap:S()});
+        }
+      });
+    }
+    var found=dist[dst]<Infinity, path=[];
+    if(found){var c=dst;while(c){path.unshift(c);c=prev[c];}}
+    st.push({t:'done',found:found,d:dist[dst],path:path,
+      text:found?'✔ route found: '+path.join(' → ')+' — '+dist[dst]+' m':'✖ no route from '+src+' to '+dst+' — destination is cut off',snap:S()});
+    var picks=0; st.forEach(function(s){if(s.t==='pick')picks++;});
+    return {steps:st,dist:dist[dst],path:path,found:found,picks:picks};
+  }
+
+  function chainRuns(){
+    var pts=[startN,via1,via2,endN].filter(function(x){return x;});
+    var dup=false;
+    for(var i=0;i<pts.length-1;i++){if(pts[i]===pts[i+1])dup=true;}
+    return {pts:pts,dup:dup};
+  }
+  function computeRoute(){
+    var c=chainRuns();
+    if(c.pts.length<2||c.dup){route=null;return;}
+    var legs=[],steps=[],total=0,ok=true;
+    for(var i=0;i<c.pts.length-1;i++){
+      var leg=dijkstraLeg(c.pts[i],c.pts[i+1],i+1,false);
+      legs.push(leg); steps=steps.concat(leg.steps);
+      if(!leg.found){ok=false;break;}
+      total+=leg.dist;
+    }
+    var baseline=0,bok=true;
+    for(var j=0;j<c.pts.length-1;j++){
+      var bl=dijkstraLeg(c.pts[j],c.pts[j+1],j+1,true);
+      if(!bl.found){bok=false;break;}
+      baseline+=bl.dist;
+    }
+    route={legs:legs,steps:steps,total:total,ok:ok,baseline:bok?baseline:null};
+  }
+
+  /* ---------- render ---------- */
+  var logEl=$('log-lines');
+  function li(text,cls){return '<div class="'+cls+'">'+text.replace(/</g,'&lt;')+'</div>';}
+  function edgeIdBetween(a,b){
+    for(var i=0;i<EDGES.length;i++){var e=EDGES[i];
+      if((e.a===a&&e.b===b)||(e.a===b&&e.b===a))return e.id;}
+    return null;
+  }
+  function edgeShow(id,idx,on){
+    var o=edgeOverlays[id]; if(!o)return;
+    o[['tent','rb','flow'][idx]].setAttribute('visibility',on?'visible':'hidden');
+  }
+  function clearOverlays(){
+    EDGES.forEach(function(e){
+      edgeShow(e.id,0,false);edgeShow(e.id,1,false);edgeShow(e.id,2,false);
+    });
+    KEYS.forEach(function(k){
+      nodeEls[k].g.classList.remove('visited','current','onroute');
+    });
+  }
+  function renderBadges(){
+    KEYS.forEach(function(k){
+      var p=nodeEls[k],label=null,cls='badge-rect-via',tcls='badge-text-via';
+      if(k===startN){label='START';cls='badge-rect-start';tcls='badge-text';}
+      else if(k===endN){label='END';cls='badge-rect-end';tcls='badge-text';}
+      else if(k===via1){label='STOP 1';}
+      else if(k===via2){label='STOP 2';}
+      if(label){
+        p.bh.classList.add('on');
+        p.brect.setAttribute('class','badge-rect '+cls);
+        p.btxt.setAttribute('class','badge-text '+tcls);
+        p.btxt.textContent=label;
+      }else p.bh.classList.remove('on');
+    });
+  }
+  function renderTable(snap,legSrc,legDst){
+    var tb=$('node-tbody'); tb.innerHTML='';
+    KEYS.forEach(function(k){
+      var tr=document.createElement('tr');
+      var d=snap.d[k],dtx=d===Infinity?'∞':d;
+      var ptx=snap.p[k]?'via '+snap.p[k]:'—';
+      var status;
+      if(snap.v.indexOf(k)>=0)status='<span class="dp-tag dp-tag-vi">visited ✔</span>';
+      else if(d<Infinity)status='<span class="dp-tag dp-tag-fr">in queue</span>';
+      else status='<span class="dp-tag dp-tag-un">unvisited</span>';
+      var extra=(legSrc===k||legDst===k)?((legSrc===k)?' ← leg start':' ← leg target'):'';
+      tr.innerHTML='<td><b style="color:'+NODES[k].color+'">'+k+'</b> <span class="metro" style="font-size:11px;color:var(--dp-dim)">'+NODES[k].name+extra+'</span></td>'+
+        '<td class="num">'+dtx+'</td><td>'+ptx+'</td><td>'+status+'</td>';
+      tb.appendChild(tr);
+    });
+    $('table-leg').textContent=legSrc?('leg: '+legSrc+' → '+legDst):'';
+  }
+  function renderAt(i){
+    if(!route||!route.steps.length)return;
+    idx=Math.max(0,Math.min(i,route.steps.length-1));
+    clearOverlays();
+    var logLines=[],prevCur={},legSrc=null,legDst=null,visited={},routeE={},routeN={},cur=null;
+    for(var s=0;s<=idx;s++){
+      var st=route.steps[s];
+      if(st.t==='leg'){prevCur={};legSrc=st.src;legDst=st.dst;logLines.push(li(st.text,'lg-leg'));}
+      else if(st.t==='init'){logLines.push(li(st.text,'lg-init'));}
+      else if(st.t==='pick'){visited[st.node]=1;logLines.push(li(st.text,'lg-pick'));if(s===idx)cur=st.node;}
+      else if(st.t==='relax'){if(st.improved)prevCur[st.to]=st.from;logLines.push(li(st.text,st.improved?'lg-relax':'lg-dim'));}
+      else if(st.t==='blocked'||st.t==='stuck'){logLines.push(li(st.text,'lg-block'));}
+      else if(st.t==='done'){
+        if(st.found){
+          for(var q=0;q<st.path.length-1;q++){
+            var eid=edgeIdBetween(st.path[q],st.path[q+1]);
+            if(eid)routeE[eid]=1;
+            routeN[st.path[q]]=1;
+          }
+          routeN[st.path[st.path.length-1]]=1;
+        }
+        logLines.push(li(st.text,st.found?'lg-done':'lg-block'));
+      }
+    }
+    for(var v in prevCur){
+      var tid=edgeIdBetween(prevCur[v],v);
+      if(tid&&!routeE[tid])edgeShow(tid,0,true);
+    }
+    for(var re in routeE){edgeShow(re,1,true);edgeShow(re,2,true);}
+    KEYS.forEach(function(k){
+      var cl=nodeEls[k].g.classList;
+      if(visited[k])cl.add('visited');
+      if(routeN[k])cl.add('onroute');
+      if(cur===k)cl.add('current');
+    });
+    logEl.innerHTML=logLines.join('');
+    logEl.scrollTop=logEl.scrollHeight;
+    renderTable(route.steps[idx].snap,legSrc,legDst);
+    $('log-progress').textContent='step '+(idx+1)+' / '+route.steps.length;
+    if(idx>=route.steps.length-1)setPlaying(false);
+  }
+
+  /* ---------- stats ---------- */
+  function showFinal(){ if(route) renderAt(route.steps.length-1); else {clearOverlays();} updateStats(); }
+  function updateStats(){
+    var chips=$('route-chips'); chips.innerHTML='';
+    var totalEl=$('total-dist'),pill=$('delta-pill'),status=$('route-status');
+    if(!route){
+      totalEl.textContent='—'; $('stat-visited').textContent='—'; $('stat-hops').textContent='—';
+      pill.hidden=true; return;
+    }
+    $('stat-visited').textContent=route.legs.reduce(function(a,l){return a+l.picks;},0);
+    var hops=route.legs.reduce(function(a,l){return a+Math.max(0,l.path.length-1);},0);
+    $('stat-hops').textContent=hops+(hops===1?' road':' roads');
+    if(!route.ok){
+      totalEl.textContent='—';
+      pill.hidden=true;
+      status.className='dp-status err';
+      status.textContent='No route available — the blocked roads cut the destination off from the start. Unblock a road or change the stops.';
+      return;
+    }
+    totalEl.textContent=route.total;
+    status.className='dp-status';
+    status.textContent='Route computed with Dijkstra\'s algorithm'+(route.baseline!==null&&route.total>route.baseline?' — the block forced a detour.':' — this is the optimal route.');
+    if(route.baseline!==null){
+      var extra=route.total-route.baseline;
+      pill.hidden=false;
+      if(extra>0){pill.className='dp-pill dp-pill-orange';pill.textContent='▲ +'+extra+' m detour from blocks';}
+      else{pill.className='dp-pill dp-pill-green';pill.textContent='✓ optimal on this network';}
+    }else pill.hidden=true;
+    var pts=[startN,via1,via2,endN].filter(function(x){return x;});
+    var html='',li2=0;
+    function colored(path){
+      return path.map(function(p){return '<b style="color:'+NODES[p].color+'">'+p+'</b>';}).join(' → ');
+    }
+    for(var i=0;i<pts.length-1;i++){
+      var leg=route.legs[li2]; if(!leg)break;
+      if(!leg.found)break;
+      if(i>0)html+='<span class="dp-chip-arrow">then</span>';
+      html+='<span class="dp-chip">'+colored(leg.path)+' · <span class="m">'+leg.dist+' m</span></span>';
+      li2++;
+    }
+    chips.innerHTML=html;
+  }
+
+  /* ---------- playback ---------- */
+  function setPlaying(on){
+    playing=on;
+    $('btn-play').classList.toggle('playing',on);
+    if(timer){clearInterval(timer);timer=null;}
+    if(on&&route){
+      timer=setInterval(function(){
+        if(!route||idx>=route.steps.length-1){setPlaying(false);return;}
+        renderAt(idx+1);
+      },620);
+    }
+  }
+  function findRoute(animate){
+    var c=chainRuns();
+    if(c.pts.length<2){
+      route=null;clearOverlays();updateStats();
+      var st=$('route-status');st.className='dp-status err';
+      st.textContent='Choose a start and a destination first (they must be different buildings).';
+      return;
+    }
+    if(c.dup){
+      route=null;clearOverlays();updateStats();
+      var st2=$('route-status');st2.className='dp-status err';
+      st2.textContent='Two consecutive stops are the same building — remove a duplicate stop.';
+      return;
+    }
+    computeRoute();updateStats();
+    if(animate){renderAt(0);setPlaying(true);}
+    else showFinal();
+  }
+
+  function syncSelects(){
+    selStart.value=startN||'';selEnd.value=endN||'';
+    selV1.value=via1||'';selV2.value=via2||'';
+  }
+
+  /* ---------- saved designs ---------- */
+  var designs=[];
+  try{ designs=JSON.parse(localStorage.getItem('campusroute-designs')||'[]')||[]; }catch(e){ designs=[]; }
+  if(!Array.isArray(designs)) designs=[];
+  function persistDesigns(){ try{ localStorage.setItem('campusroute-designs',JSON.stringify(designs)); }catch(e){} }
+  function snapshot(){
+    var nodes={}; KEYS.forEach(function(k){ nodes[k]={x:NODES[k].x,y:NODES[k].y,r:NODES[k].r}; });
+    var blocks={}; ROAD_LIST.forEach(function(rid){ blocks[rid]=roadIsBlocked(rid); });
+    return { nodes:nodes, blocks:blocks, roles:{start:startN,end:endN,via1:via1,via2:via2}, locked:locked };
+  }
+  function applySnap(data){
+    if(!data||!data.nodes) return false;
+    KEYS.forEach(function(k){
+      var s=data.nodes[k]; if(!s) return;
+      NODES[k].x=clamp(s.x,10,W-10); NODES[k].y=clamp(s.y,10,H-10); NODES[k].r=clamp(s.r||30,18,60);
+      updateNodeVisual(k);
+    });
+    ROAD_LIST.forEach(function(rid){
+      var b=!!(data.blocks&&data.blocks[rid]);
+      ROADS[rid].edges.forEach(function(id){ blocked[id]=b; });
+    });
+    startN=data.roles&&KEYS.indexOf(data.roles.start)>=0?data.roles.start:null;
+    endN=data.roles&&KEYS.indexOf(data.roles.end)>=0?data.roles.end:null;
+    via1=data.roles&&KEYS.indexOf(data.roles.via1)>=0?data.roles.via1:null;
+    via2=data.roles&&KEYS.indexOf(data.roles.via2)>=0?data.roles.via2:null;
+    setLocked(!!data.locked);
+    syncSelects(); renderBadges(); refreshAllRoads(); refreshBlockedVisual(); deselect();
+    if(startN&&endN){computeRoute(); showFinal();}
+    else {route=null; clearOverlays(); updateStats();}
+    return true;
+  }
+  function fmtDate(ts){
+    var d=new Date(ts);
+    return d.toLocaleDateString()+' '+d.toLocaleTimeString().slice(0,5);
+  }
+  function renderSaveList(){
+    var list=$('save-list'); list.innerHTML='';
+    $('save-count').textContent=designs.length? designs.length+' saved':'nothing saved yet';
+    if(!designs.length){
+      list.innerHTML='<div class="save-empty">No saved designs yet — arrange your campus, then press “Save design”.</div>';
+      return;
+    }
+    designs.forEach(function(d,i){
+      var row=document.createElement('div'); row.className='save-row';
+      var info=document.createElement('div');
+      var sn=document.createElement('div'); sn.className='sn'; sn.textContent=d.name;
+      var sd=document.createElement('div'); sd.className='sd';
+      var nb=Object.keys(d.data.blocks||{}).filter(function(k){return d.data.blocks[k];}).length;
+      sd.textContent=fmtDate(d.ts)+' · '+(nb?nb+' road'+(nb>1?'s':'')+' blocked':'open')+(d.data.locked?' · 🔒':'');
+      info.appendChild(sn); info.appendChild(sd);
+      var acts=document.createElement('div'); acts.className='acts';
+      var load=document.createElement('button'); load.type='button'; load.className='dp-btn dp-btn-primary'; load.textContent='Load';
+      load.addEventListener('click',function(){ applySnap(d.data); });
+      var del=document.createElement('button'); del.type='button'; del.className='dp-btn'; del.textContent='Delete';
+      del.addEventListener('click',function(){ designs.splice(i,1); persistDesigns(); renderSaveList(); });
+      acts.appendChild(load); acts.appendChild(del);
+      row.appendChild(info); row.appendChild(acts);
+      list.appendChild(row);
+    });
+  }
+  $('btn-save').addEventListener('click',function(){
+    var nameEl=$('save-name');
+    var name=(nameEl.value||'').trim()||('Design '+(designs.length+1));
+    designs.unshift({name:name,ts:Date.now(),data:snapshot()});
+    persistDesigns(); renderSaveList(); nameEl.value='';
+  });
+  $('btn-export').addEventListener('click',function(){
+    var name=($('save-name').value||'').trim()||'Exported design';
+    var payload={name:name,ts:Date.now(),data:snapshot()};
+    var code;
+    try{ code=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))); }
+    catch(e){ code=JSON.stringify(payload); }
+    $('export-code').value=code;
+    $('export-code').select();
+    try{ document.execCommand('copy'); }catch(e){}
+  });
+  $('btn-import').addEventListener('click',function(){
+    var st=$('import-status');
+    try{
+      var raw=$('import-code').value.trim();
+      if(!raw){ st.className='dp-status err'; st.textContent='Paste a design code first.'; return; }
+      var json;
+      try{ json=JSON.parse(decodeURIComponent(escape(atob(raw)))); }
+      catch(_e){ json=JSON.parse(raw); }
+      if(!json||!json.data) throw new Error('bad');
+      if(applySnap(json.data)){
+        designs.unshift({name:(json.name||'Imported design')+' (imported)',ts:Date.now(),data:json.data});
+        persistDesigns(); renderSaveList();
+        st.className='dp-status'; st.textContent='Design “'+(json.name||'imported')+'” applied ✓';
+      }else throw new Error('bad');
+    }catch(e){
+      st.className='dp-status err';
+      st.textContent='That code could not be read — make sure you copied the whole thing.';
+    }
+  });
+
+  /* ---------- events ---------- */
+  selStart.addEventListener('change',function(){startN=selStart.value||null;renderBadges();if(startN&&endN)findRoute(false);else{route=null;clearOverlays();updateStats();}});
+  selEnd.addEventListener('change',function(){endN=selEnd.value||null;renderBadges();if(startN&&endN)findRoute(false);else{route=null;clearOverlays();updateStats();}});
+  selV1.addEventListener('change',function(){via1=selV1.value||null;renderBadges();if(startN&&endN)findRoute(false);});
+  selV2.addEventListener('change',function(){via2=selV2.value||null;renderBadges();if(startN&&endN)findRoute(false);});
+
+  $('btn-find').addEventListener('click',function(){findRoute(true);});
+  $('btn-reset').addEventListener('click',function(){
+    startN=endN=via1=via2=null;syncSelects();renderBadges();
+    route=null;clearOverlays();updateStats();
+    logEl.innerHTML='<div class="lg-placeholder">Set a start and destination on the Campus Map tab, then press Find Route — every step of the algorithm will be logged here.</div>';
+    $('log-progress').textContent='';
+    deselect();
+  });
+  $('btn-restore').addEventListener('click',function(){
+    KEYS.forEach(function(k){
+      if(k==='M') return;
+      var n=NODES[k], o=INIT[k];
+      n.x=o.x; n.y=o.y; n.r=o.r;
+      updateNodeVisual(k);
+    });
+    refreshAllRoads();
+    if(startN&&endN){computeRoute(); showFinal();}
+  });
+  $('btn-clear-blocks').addEventListener('click',function(){
+    ROAD_LIST.forEach(function(rid){ ROADS[rid].edges.forEach(function(id){blocked[id]=false;}); });
+    refreshBlockedVisual();
+    if(startN&&endN)findRoute(false);
+  });
+
+  $('btn-play').addEventListener('click',function(){
+    if(!route){if(startN&&endN){computeRoute();}else return;}
+    if(idx>=route.steps.length-1)renderAt(0);
+    setPlaying(!playing);
+  });
+  $('btn-step').addEventListener('click',function(){
+    if(!route){if(startN&&endN)computeRoute();else return;}
+    setPlaying(false);
+    if(idx<route.steps.length-1)renderAt(idx+1);
+  });
+  $('btn-skip').addEventListener('click',function(){
+    if(!route){if(startN&&endN)computeRoute();else return;}
+    setPlaying(false);showFinal();
+  });
+  $('btn-restart').addEventListener('click',function(){
+    if(!route){if(startN&&endN)computeRoute();else return;}
+    setPlaying(false);renderAt(0);
+  });
+
+  /* ---------- init ---------- */
+  updateJunction();
+  refreshAllRoads(); refreshInspBars();
+  renderBadges(); refreshBlockedVisual(); updateStats(); renderSaveList();
+  if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons({attrs:{width:16,height:16}});
+})();
+</script>
+</div>
+
+<script>
+if(window.lucide&&window.lucide.createIcons)window.lucide.createIcons({attrs:{width:16,height:16}});
+</script>
+</body>
+</html>
